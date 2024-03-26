@@ -4,8 +4,11 @@ class Game {
     this.ctx = context;
     this.width = this.canvas.width;
     this.height = this.canvas.height;
+    this.baseHeight = 720;
+    this.ratio = this.height / this.baseHeight;
+    this.background = new Background(this);
     this.player = new Player(this);
-    this.gravity = 1.5;
+    this.gravity;
     this.mouse = {
       x: undefined,
       y: undefined,
@@ -22,15 +25,19 @@ class Game {
         pressed: false
       }
     };
-
     this.controller = new ButtonController();
     
-    this.lBtn = new Button(100, 100, 100, 100, "purple");
-    this.rBtn = new Button(300, 100, 100, 100, "red");
-    this.jBtn = new Button(500, 100, 100, 100, "grey");
+    this.lBtn = new Button(100, 100, 100, 100, "purple", this);
+    this.rBtn = new Button(300, 100, 100, 100, "red", this);
+    this.jBtn = new Button(500, 100, 100, 100, "grey", this);
     this.controller.addButton(this.lBtn);
     this.controller.addButton(this.rBtn);
     this.controller.addButton(this.jBtn);
+    this.resize(window.innerWidth, window.innerHeight);
+
+    window.addEventListener('resize', e => {
+      this.resize(e.currentTarget.innerWidth, e.currentTarget.innerHeight);
+    });
 
     window.addEventListener('keydown', (event) => {
       switch (event.key) {
@@ -69,27 +76,57 @@ class Game {
       this.controller.touchEnd(e);
     });
   }
+  resize(width, height) {
+    this.canvas.width = width;
+    this.canvas.height = height;
+    this.width = this.canvas.width;
+    this.height = this.canvas.height;
+    this.ratio = Math.min(this.height / this.baseHeight);
+    this.gravity = 1.5 * this.ratio;
+    this.background.resize();
+    this.controller.buttons.forEach(button => {
+      button.resize();
+    });
+    this.player.resize();
+  }
   checkCollision(rect1, rect2) {
     return (
       rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x && rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y
     );
   }
   render() {
-    this.player.fullStop();
-    if (this.keys.d.pressed) {
+    
+    if (this.keys.d.pressed && this.player.position.x < 400) {
       this.player.moveRight();
-    } else if (this.keys.a.pressed) {
+    } else if (this.keys.a.pressed && this.player.position.x > 100) {
       this.player.moveLeft();
-    } else if (this.lBtn.active) {
+    } else if (this.lBtn.active && this.player.position.x > 100) {
       this.player.moveLeft();
-    } else if (this.rBtn.active) {
+    } else if (this.rBtn.active && this.player.position.x < 400) {
       this.player.moveRight();
+    } else {
+      this.player.fullStop();
+
+      if (this.keys.d.pressed) {
+        this.background.moveLeft();
+      } else if (this.keys.a.pressed) {
+        this.background.moveRight();
+      } else if (this.lBtn.active) {
+        this.background.moveRight();
+      } else if (this.rBtn.active) {
+        this.background.moveLeft();
+      } else {
+        this.background.fullStop();
+      }
     }
 
+    this.background.update();
+    this.background.draw();
+
     this.controller.buttons.forEach(button => {
-      this.ctx.fillStyle = button.color;
-      this.ctx.fillRect(button.x, button.y, button.width, button.height);
+      button.draw();
     });
+
     this.player.update();
     this.player.draw();
   }
@@ -101,22 +138,14 @@ window.addEventListener('load', function() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
+
   const game = new Game(canvas, ctx);
-
-  let rect = canvas.getBoundingClientRect();
-
-  canvas.width = rect.width * devicePixelRatio;
-  canvas.height = rect.height * devicePixelRatio;
-  
-  ctx.scale(devicePixelRatio, devicePixelRatio);
-  
-  canvas.style.width = rect.width + 'px';
-  canvas.style.height = rect.height + 'px';
   
   function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     game.render();
     requestAnimationFrame(animate);
   }
+
   this.requestAnimationFrame(animate);
 });
