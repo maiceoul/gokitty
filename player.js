@@ -2,8 +2,8 @@ class Player {
   constructor(game) {
     this.game = game;
     this.position = {
-      x: 100 / window.devicePixelRatio,
-      y: 100 / window.devicePixelRatio
+      x: 100,
+      y: 100
     };
     this.speed = {
       x: 0,
